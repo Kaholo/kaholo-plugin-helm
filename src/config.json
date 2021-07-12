@@ -1,0 +1,63 @@
+{
+  "name": "Helm",
+  "type": "executer",
+  "imgUrl": "icon.png",
+  "execProgram": "node",
+  "main": "app.js",
+  "version": "1.0.5",
+  "description": "Helm CLI wrapper",
+  "settings":[],
+  "methods": [
+    {
+      "name": "helmInstall",
+      "viewName": "Install",
+      "params": [
+        {
+          "name": "dirPath",
+          "viewName": "Directory Path",
+          "type": "string"
+        },
+        {
+          "name": "chart",
+          "viewName": "Chart",
+          "type": "string"
+        },
+        { 
+          "name": "generateName",
+          "viewName": "Generate Name",
+          "type": "boolean"
+        },
+        {
+          "name": "namesapce",
+          "viewName": "Namespace",
+          "type": "string"
+        },
+        { 
+          "name": "endpointUrl",
+          "viewName": "Endpoint URL",
+          "type": "string"
+        },
+        {
+          "name": "caCert",
+          "viewName": "Certificate Authority",
+          "type": "vault"
+        },
+        {
+          "name": "token",
+          "viewName": "Service Account Token",
+          "type": "vault"
+        },
+        {
+          "name": "saName",
+          "viewName": "Service Account Name",
+          "type": "string"
+        },
+        {
+          "name": "helmVars",
+          "viewName": "Helm Variables",
+          "type": "text"
+        }
+      ]
+    }
+  ]
+}
