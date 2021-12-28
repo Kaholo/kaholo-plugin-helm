@@ -19,7 +19,7 @@
         },
         {
           "name": "chart",
-          "viewName": "Chart",
+          "viewName": "Release Name",
           "type": "string"
         },
         { 
