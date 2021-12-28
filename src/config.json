@@ -4,9 +4,9 @@
   "imgUrl": "icon.png",
   "execProgram": "node",
   "main": "app.js",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Helm CLI wrapper",
-  "settings":[],
+  "category": "CONTAINERS",
   "methods": [
     {
       "name": "helmInstall",
