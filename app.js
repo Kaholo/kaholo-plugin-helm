@@ -1,73 +1,72 @@
-const child_process = require('child_process');
+const child_process = require("child_process");
 const ClusterCa = require("./cluster-ca");
 
-async function execCommand(command){
-  return new Promise((resolve,reject) => {
-		child_process.exec(command, (error, stdout, stderr) => {
-			if (error) {
-				return reject(error);
-			}
-			return resolve(stdout);
-		});
-	})
+async function execCommand(command) {
+  return new Promise((resolve, reject) => {
+    child_process.exec(command, (error, stdout, stderr) => {
+      if (error) {
+        return reject(error);
+      }
+      return resolve(stdout);
+    });
+  });
 }
 
-async function helmInstall(action, settings){
-  const caCert = action.params.caCert;
-  const endpointUrl = action.params.endpointUrl;
-  const token = action.params.token;
-  const saName = action.params.saName;
+async function helmInstall(action, settings) {
+  const { caCert } = action.params;
+  const { endpointUrl } = action.params;
+  const { token } = action.params;
+  const { saName } = action.params;
   const chartName = action.params.chart;
-  const generateName = action.params.generateName && action.params.generateName!=="false";
-  const dirPath = action.params.dirPath;
-  const namesapce = action.params.namesapce;
-  const helmVars = action.params.helmVars;
+  const generateName = action.params.generateName && action.params.generateName !== "false";
+  const { dirPath } = action.params;
+  const { namesapce } = action.params;
+  const { helmVars } = action.params;
 
-  const cmdOptions = []
+  const cmdOptions = [];
 
   let helmCmdCluster;
   let clusterCa;
-  
-  if(caCert && endpointUrl && token && saName){
+
+  if (caCert && endpointUrl && token && saName) {
     clusterCa = await ClusterCa.from(caCert);
-    helmCmdCluster = `--kube-apiserver ${endpointUrl} --kube-ca-file ${clusterCa.keyPath} --kube-as-user ${saName} --kube-token ${token}`
-  } else if (caCert || endpointUrl || token || saName){
-    throw "Partial credentials supllied";
+    helmCmdCluster = `--kube-apiserver ${endpointUrl} --kube-ca-file ${clusterCa.keyPath} --kube-as-user ${saName} --kube-token ${token}`;
+  } else if (caCert || endpointUrl || token || saName) {
+    throw new Error("Partial credentials supllied");
   }
 
-  if(dirPath){
+  if (dirPath) {
     cmdOptions.push(`${dirPath}`);
   }
-  
-  if(generateName){
-    cmdOptions.push(`--generate-name`);
+
+  if (generateName) {
+    cmdOptions.push("--generate-name");
   }
-  
-  if(namesapce){
+
+  if (namesapce) {
     cmdOptions.push(`-n ${namesapce} --create-namespace`);
   }
 
-
   cmdOptions.push(helmCmdCluster);
 
-  if(helmVars){
-    let varsArray = (typeof helmVars=='string') ? helmVars.split('\n') : helmVars;
-    varsArray.forEach(helmVar=>{
+  if (helmVars) {
+    const varsArray = (typeof helmVars === "string") ? helmVars.split("\n") : helmVars;
+    varsArray.forEach((helmVar) => {
       cmdOptions.push(`--set ${helmVar}`);
-    })
+    });
   }
 
-  const helmCmd = `helm upgrade --install ${chartName} ${cmdOptions.join(' ')}`
-  try{
+  const helmCmd = `helm upgrade --install ${chartName} ${cmdOptions.join(" ")}`;
+  try {
     return await execCommand(helmCmd);
-  } catch (err){
+  } catch (err) {
     throw err;
-  } finally{
-    try{
-      if (clusterCa){
+  } finally {
+    try {
+      if (clusterCa) {
         await clusterCa.dispose();
       }
-    } catch (err){}
+    } catch (err) {}
   }
 }
 
