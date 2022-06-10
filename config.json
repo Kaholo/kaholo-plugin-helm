@@ -7,6 +7,30 @@
   "version": "1.1.0",
   "description": "Helm CLI wrapper",
   "category": "CONTAINERS",
+  "auth": {
+    "authId": "",
+    "params": [{
+      "name": "kubeCertificateFile",
+      "viewName": "Certificate file directory",
+      "type": "string"
+    }, {
+      "name": "kubeToken",
+      "viewName": "Kubernetes token",
+      "type": "vault"
+    }, {
+      "name": "kubeApiServer",
+      "viewName": "API server address",
+      "type": "string"
+    }, {
+      "name": "kubeUser",
+      "viewName": "Username",
+      "type": "string"
+    }, {
+      "name": "namespace",
+      "viewName": "Namespace",
+      "type": "string"
+    }]
+  },
   "methods": [
     {
       "name": "helmInstall",
