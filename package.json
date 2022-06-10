@@ -9,10 +9,11 @@
   "author": "Kaholo Team(Amit Alon)",
   "license": "ISC",
   "dependencies": {
+    "@kaholo/plugin-library": "^1.4.0",
     "@kubernetes/client-node": "^0.14.0",
-    "js-yaml": "^4.0.0",
     "eslint": "^8.8.0",
     "eslint-config-airbnb-base": "^15.0.0",
-    "eslint-plugin-import": "^2.25.4"
+    "eslint-plugin-import": "^2.25.4",
+    "js-yaml": "^4.0.0"
   }
 }

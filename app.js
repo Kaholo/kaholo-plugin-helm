@@ -59,8 +59,6 @@ async function helmInstall(action, settings) {
   const helmCmd = `helm upgrade --install ${chartName} ${cmdOptions.join(" ")}`;
   try {
     return await execCommand(helmCmd);
-  } catch (err) {
-    throw err;
   } finally {
     try {
       if (clusterCa) {

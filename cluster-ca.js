@@ -1,4 +1,8 @@
-const fs = require("fs");
+const {
+  chmod,
+  unlink,
+  writeFile,
+} = require("fs/promises");
 const path = require("path");
 
 class ClusterCa {
@@ -17,28 +21,16 @@ class ClusterCa {
     // Write private key to file
     const keyFileName = `helm-cluster-key-${new Date().getTime()}.pem`;
     const keyPath = path.join(__dirname, keyFileName);
-    return new Promise((resolve, reject) => {
-      fs.writeFile(keyPath, decodedCertificate, (err) => {
-        if (err) { return reject(err); }
 
-        // Set key file permissions
-        fs.chmod(keyPath, "0400", (error) => {
-          if (error) { return reject(error); }
-          const ca = new ClusterCa(keyPath);
-          resolve(ca);
-        });
-      });
-    });
+    await writeFile(keyPath, decodedCertificate);
+
+    await chmod(keyPath, "0400");
+
+    return new ClusterCa(keyPath);
   }
 
   async dispose() {
-    const self = this;
-    return new Promise((resolve, reject) => {
-      fs.unlink(self.keyPath, (err) => {
-        if (err) { return reject(err); }
-        resolve();
-      });
-    });
+    return unlink(this.keyPath);
   }
 }
 
