@@ -12,11 +12,21 @@ const HELM_IMAGE_NAME = "alpine/helm";
 async function install(pluginParameters) {
   const { kubeCertificate } = pluginParameters;
 
+  let result;
+
   await helpers.temporaryFileSentinel(
     [kubeCertificate],
     async (certificateFilePath) => {
+      const [certificatePath, certificateFileName] = splitDirectory(certificateFilePath);
+      const certificateVolumeDefinition = docker.createVolumeDefinition(certificatePath);
+      const chartVolumeDefinition = docker.createVolumeDefinition(pluginParameters.chartDirectory);
+      const volumeDefinitions = [
+        certificateVolumeDefinition,
+        chartVolumeDefinition,
+      ];
+
       const authenticationParameters = generateAuthenticationParameters({
-        certificateFilePath,
+        certificateFilePath: `$${certificateVolumeDefinition.mountPoint.name}/${certificateFileName}`,
         kubeToken: pluginParameters.kubeToken,
         kubeApiServer: pluginParameters.kubeApiServer,
         kubeUser: pluginParameters.kubeUser,
@@ -32,50 +42,184 @@ async function install(pluginParameters) {
         valuesOverride: pluginParameters.valuesOverride,
       });
 
-      const volumeDefinition = docker.createVolumeDefinition(pluginParameters.chartDirectory);
+      const dockerEnvironmentalVariables = volumeDefinitions.reduce(
+        (acc, cur) => ({
+          ...acc,
+          [cur.mountPoint.name]: cur.mountPoint.value,
+        }),
+        {},
+      );
 
-      const environmentalVariables = {
-        [volumeDefinition.mountPoint.name]: volumeDefinition.mountPoint.value,
-      };
+      const shellEnvironmentalVariables = volumeDefinitions.reduce(
+        (acc, cur) => ({
+          ...acc,
+          [cur.path.name]: cur.path.value,
+        }),
+        dockerEnvironmentalVariables,
+      );
 
       const helmCommand = `\
 install \
 ${releaseNameParameters.join(" ")} \
-$${volumeDefinition.mountPoint.name}
+$${chartVolumeDefinition.mountPoint.name} \
 ${installationParameters.join(" ")} \
 ${authenticationParameters.join(" ")}`;
 
       const command = docker.buildDockerCommand({
         command: helmCommand,
         image: HELM_IMAGE_NAME,
-        environmentVariables: environmentalVariables,
-        volumeDefinitionsArray: [volumeDefinition],
+        environmentVariables: dockerEnvironmentalVariables,
+        volumeDefinitionsArray: volumeDefinitions,
       });
 
-      const result = await exec(command, {
-        env: environmentalVariables,
+      result = await exec(command, {
+        env: shellEnvironmentalVariables,
       });
-
-      return result;
     },
   );
+
+  const { stdout, stderr } = result;
+
+  if (!stdout && stderr) {
+    throw new Error(stderr);
+  }
+
+  return stdout;
 }
 
-async function uninstall(parameters) {
-  const { chartName } = parameters;
+async function uninstall(pluginParameters) {
+  const { chartName, kubeCertificate } = pluginParameters;
 
-  const command = docker.buildDockerCommand({
-    command: `uninstall ${chartName}`,
-    image: HELM_IMAGE_NAME,
-  });
+  let result;
 
-  const result = await exec(command);
+  await helpers.temporaryFileSentinel(
+    [kubeCertificate],
+    async (certificateFilePath) => {
+      const [certificatePath, certificateFileName] = splitDirectory(certificateFilePath);
+      const certificateVolumeDefinition = docker.createVolumeDefinition(certificatePath);
+      const volumeDefinitions = [
+        certificateVolumeDefinition,
+      ];
 
-  return result;
+      const authenticationParameters = generateAuthenticationParameters({
+        certificateFilePath: `$${certificateVolumeDefinition.mountPoint.name}/${certificateFileName}`,
+        kubeToken: pluginParameters.kubeToken,
+        kubeApiServer: pluginParameters.kubeApiServer,
+        kubeUser: pluginParameters.kubeUser,
+      });
+
+      const installationParameters = generateInstallationParameters({
+        namespace: pluginParameters.namespace,
+      });
+
+      const dockerEnvironmentalVariables = volumeDefinitions.reduce(
+        (acc, cur) => ({
+          ...acc,
+          [cur.mountPoint.name]: cur.mountPoint.value,
+        }),
+        {},
+      );
+
+      const shellEnvironmentalVariables = volumeDefinitions.reduce(
+        (acc, cur) => ({
+          ...acc,
+          [cur.path.name]: cur.path.value,
+        }),
+        dockerEnvironmentalVariables,
+      );
+
+      const helmCommand = `\
+uninstall \
+${chartName} \
+${installationParameters.join(" ")} \
+${authenticationParameters.join(" ")}`;
+
+      const command = docker.buildDockerCommand({
+        command: helmCommand,
+        image: HELM_IMAGE_NAME,
+        environmentVariables: dockerEnvironmentalVariables,
+        volumeDefinitionsArray: volumeDefinitions,
+      });
+
+      result = await exec(command, {
+        env: shellEnvironmentalVariables,
+      });
+    },
+  );
+
+  const { stdout, stderr } = result;
+
+  if (!stdout && stderr) {
+    throw new Error(stderr);
+  }
+
+  return stdout;
 }
 
-function runCommand(parameters) {
+async function runCommand(pluginParameters) {
+  const {
+    kubeCertificate,
+    cliCommand,
+  } = pluginParameters;
 
+  let result;
+
+  await helpers.temporaryFileSentinel(
+    [kubeCertificate],
+    async (certificateFilePath) => {
+      const [certificatePath, certificateFileName] = splitDirectory(certificateFilePath);
+      const certificateVolumeDefinition = docker.createVolumeDefinition(certificatePath);
+      const volumeDefinitions = [
+        certificateVolumeDefinition,
+      ];
+
+      const authenticationParameters = generateAuthenticationParameters({
+        certificateFilePath: `$${certificateVolumeDefinition.mountPoint.name}/${certificateFileName}`,
+        kubeToken: pluginParameters.kubeToken,
+        kubeApiServer: pluginParameters.kubeApiServer,
+        kubeUser: pluginParameters.kubeUser,
+      });
+
+      const dockerEnvironmentalVariables = volumeDefinitions.reduce(
+        (acc, cur) => ({
+          ...acc,
+          [cur.mountPoint.name]: cur.mountPoint.value,
+        }),
+        {},
+      );
+
+      const shellEnvironmentalVariables = volumeDefinitions.reduce(
+        (acc, cur) => ({
+          ...acc,
+          [cur.path.name]: cur.path.value,
+        }),
+        dockerEnvironmentalVariables,
+      );
+
+      const helmCommand = `\
+${sanitizeCommand(cliCommand)} \
+${authenticationParameters.join(" ")}`;
+
+      const command = docker.buildDockerCommand({
+        command: helmCommand,
+        image: HELM_IMAGE_NAME,
+        environmentVariables: dockerEnvironmentalVariables,
+        volumeDefinitionsArray: volumeDefinitions,
+      });
+
+      result = await exec(command, {
+        env: shellEnvironmentalVariables,
+      });
+    },
+  );
+
+  const { stdout, stderr } = result;
+
+  if (!stdout && stderr) {
+    throw new Error(stderr);
+  }
+
+  return stdout;
 }
 
 function generateAuthenticationParameters(pluginParams) {
@@ -131,6 +275,14 @@ function generateInstallationParameters(pluginParams) {
   }
 
   return params;
+}
+
+function splitDirectory(directory) {
+  const pathElements = directory.split("/");
+
+  const fileName = pathElements.pop();
+
+  return [pathElements.join("/"), fileName];
 }
 
 // Helm Docker image accepts commands WITHOUT the CLI name

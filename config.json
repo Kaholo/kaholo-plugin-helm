@@ -8,7 +8,7 @@
   "description": "Helm CLI wrapper",
   "category": "CONTAINERS",
   "auth": {
-    "authId": "",
+    "authId": "helm",
     "params": [{
       "name": "kubeCertificate",
       "viewName": "Kubernetes Certificate file content",
@@ -51,7 +51,7 @@
           "viewName": "Release name",
           "type": "string"
         },
-        { 
+        {
           "name": "generateName",
           "viewName": "Generate Name",
           "type": "boolean",
@@ -74,6 +74,17 @@
           "name": "chartName",
           "viewName": "Chart name",
           "type": "string"
+        }
+      ]
+    }, {
+      "name": "runCommand",
+      "viewName": "Run Command",
+      "params": [
+        {
+          "name": "cliCommand",
+          "viewName": "CLI Command",
+          "type": "string",
+          "placeholder": "list"
         }
       ]
     }
