@@ -61,8 +61,17 @@ ${authenticationParameters.join(" ")}`;
   );
 }
 
-function uninstall(parameters) {
+async function uninstall(parameters) {
+  const { chartName } = parameters;
 
+  const command = docker.buildDockerCommand({
+    command: `uninstall ${chartName}`,
+    image: HELM_IMAGE_NAME,
+  });
+
+  const result = await exec(command);
+
+  return result;
 }
 
 function runCommand(parameters) {
