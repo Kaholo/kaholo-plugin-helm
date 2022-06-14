@@ -6,8 +6,6 @@ const {
 const { promisify } = require("util");
 const exec = promisify(require("child_process").exec);
 
-const ClusterCa = require("./cluster-ca");
-
 const HELM_CLI_NAME = "helm";
 const HELM_IMAGE_NAME = "alpine/helm";
 
