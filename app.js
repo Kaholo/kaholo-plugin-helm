@@ -1,73 +1,140 @@
-const child_process = require("child_process");
+const {
+  bootstrap,
+  helpers,
+  docker,
+} = require("@kaholo/plugin-library");
+const { promisify } = require("util");
+const exec = promisify(require("child_process").exec);
+
 const ClusterCa = require("./cluster-ca");
 
-async function execCommand(command) {
-  return new Promise((resolve, reject) => {
-    child_process.exec(command, (error, stdout, stderr) => {
-      if (error) {
-        return reject(error);
-      }
-      return resolve(stdout);
-    });
-  });
+const HELM_CLI_NAME = "helm";
+const HELM_IMAGE_NAME = "alpine/helm";
+
+async function install(pluginParameters) {
+  const { kubeCertificate } = pluginParameters;
+
+  await helpers.temporaryFileSentinel(
+    [kubeCertificate],
+    async (certificateFilePath) => {
+      const authenticationParameters = generateAuthenticationParameters({
+        certificateFilePath,
+        kubeToken: pluginParameters.kubeToken,
+        kubeApiServer: pluginParameters.kubeApiServer,
+        kubeUser: pluginParameters.kubeUser,
+      });
+
+      const releaseNameParameters = generateReleaseNameParameters({
+        releaseName: pluginParameters.releaseName,
+        generateName: pluginParameters.generateName,
+      });
+
+      const installationParameters = generateInstallationParameters({
+        namespace: pluginParameters.namespace,
+        valuesOverride: pluginParameters.valuesOverride,
+      });
+
+      const volumeDefinition = docker.createVolumeDefinition(pluginParameters.chartDirectory);
+
+      const environmentalVariables = {
+        [volumeDefinition.mountPoint.name]: volumeDefinition.mountPoint.value,
+      };
+
+      const helmCommand = `\
+install \
+${releaseNameParameters.join(" ")} \
+$${volumeDefinition.mountPoint.name}
+${installationParameters.join(" ")} \
+${authenticationParameters.join(" ")}`;
+
+      const command = docker.buildDockerCommand({
+        command: helmCommand,
+        image: HELM_IMAGE_NAME,
+        environmentVariables: environmentalVariables,
+        volumeDefinitionsArray: [volumeDefinition],
+      });
+
+      const result = await exec(command, {
+        env: environmentalVariables,
+      });
+
+      return result;
+    },
+  );
 }
 
-async function helmInstall(action, settings) {
-  const { caCert } = action.params;
-  const { endpointUrl } = action.params;
-  const { token } = action.params;
-  const { saName } = action.params;
-  const chartName = action.params.chart;
-  const generateName = action.params.generateName && action.params.generateName !== "false";
-  const { dirPath } = action.params;
-  const { namesapce } = action.params;
-  const { helmVars } = action.params;
+function uninstall(parameters) {
 
-  const cmdOptions = [];
+}
 
-  let helmCmdCluster;
-  let clusterCa;
+function runCommand(parameters) {
 
-  if (caCert && endpointUrl && token && saName) {
-    clusterCa = await ClusterCa.from(caCert);
-    helmCmdCluster = `--kube-apiserver ${endpointUrl} --kube-ca-file ${clusterCa.keyPath} --kube-as-user ${saName} --kube-token ${token}`;
-  } else if (caCert || endpointUrl || token || saName) {
-    throw new Error("Partial credentials supllied");
+}
+
+function generateAuthenticationParameters(pluginParams) {
+  const params = [];
+
+  params.push("--kube-ca-file", pluginParams.certificateFilePath);
+  params.push("--kube-token", pluginParams.kubeToken);
+  params.push("--kube-apiserver", pluginParams.kubeApiServer);
+  params.push("--kube-as-user", pluginParams.kubeUser);
+
+  return params;
+}
+
+function generateReleaseNameParameters({
+  releaseName,
+  generateName,
+}) {
+  if (releaseName && generateName) {
+    throw new Error("Please provide either Release Name or Generate Name parameter.");
   }
 
-  if (dirPath) {
-    cmdOptions.push(`${dirPath}`);
+  if (!releaseName && !generateName) {
+    throw new Error("Please provide Release Name or Generate Name parameter.");
+  }
+
+  const params = [];
+
+  if (releaseName) {
+    params.push(releaseName);
   }
 
   if (generateName) {
-    cmdOptions.push("--generate-name");
+    params.push("--generate-name");
   }
 
-  if (namesapce) {
-    cmdOptions.push(`-n ${namesapce} --create-namespace`);
-  }
-
-  cmdOptions.push(helmCmdCluster);
-
-  if (helmVars) {
-    const varsArray = (typeof helmVars === "string") ? helmVars.split("\n") : helmVars;
-    varsArray.forEach((helmVar) => {
-      cmdOptions.push(`--set ${helmVar}`);
-    });
-  }
-
-  const helmCmd = `helm upgrade --install ${chartName} ${cmdOptions.join(" ")}`;
-  try {
-    return await execCommand(helmCmd);
-  } finally {
-    try {
-      if (clusterCa) {
-        await clusterCa.dispose();
-      }
-    } catch (err) {}
-  }
+  return params;
 }
 
-module.exports = {
-  helmInstall,
-};
+function generateInstallationParameters(pluginParams) {
+  const {
+    namespace,
+    valuesOverrides,
+  } = pluginParams;
+
+  const params = [];
+
+  if (namespace) {
+    params.push("--namespace", namespace);
+  }
+
+  if (valuesOverrides) {
+    params.push(valuesOverrides.map((override) => ["--set", override]).flat());
+  }
+
+  return params;
+}
+
+// Helm Docker image accepts commands WITHOUT the CLI name
+function sanitizeCommand(command) {
+  return command.startsWith(HELM_CLI_NAME)
+    ? command.slice(HELM_CLI_NAME.length).trim()
+    : command;
+}
+
+module.exports = bootstrap({
+  install,
+  uninstall,
+  runCommand,
+});

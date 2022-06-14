@@ -10,21 +10,25 @@
   "auth": {
     "authId": "",
     "params": [{
-      "name": "kubeCertificateFile",
-      "viewName": "Certificate file directory",
-      "type": "string"
+      "name": "kubeCertificate",
+      "viewName": "Kubernetes Certificate file content",
+      "type": "string",
+      "required": true
     }, {
       "name": "kubeToken",
       "viewName": "Kubernetes token",
-      "type": "vault"
+      "type": "vault",
+      "required": true
     }, {
       "name": "kubeApiServer",
       "viewName": "API server address",
-      "type": "string"
+      "type": "string",
+      "required": true
     }, {
       "name": "kubeUser",
       "viewName": "Username",
-      "type": "string"
+      "type": "string",
+      "required": true
     }, {
       "name": "namespace",
       "viewName": "Namespace",
@@ -33,53 +37,43 @@
   },
   "methods": [
     {
-      "name": "helmInstall",
+      "name": "install",
       "viewName": "Install",
       "params": [
         {
-          "name": "dirPath",
-          "viewName": "Directory Path",
-          "type": "string"
+          "name": "chartDirectory",
+          "viewName": "Chart directory",
+          "type": "string",
+          "required": true
         },
         {
-          "name": "chart",
-          "viewName": "Release Name",
+          "name": "releaseName",
+          "viewName": "Release name",
           "type": "string"
         },
         { 
           "name": "generateName",
           "viewName": "Generate Name",
-          "type": "boolean"
+          "type": "boolean",
+          "description": "Generate the Chart name if it is not supplied"
         },
         {
-          "name": "namesapce",
-          "viewName": "Namespace",
+          "name": "valuesOverrides",
+          "viewName": "Values overrides",
+          "type": "text",
+          "parserType": "array",
+          "description": "Values overriding the values.yaml content",
+          "placeholder": "service.port=8080"
+        }
+      ]
+    }, {
+      "name": "uninstall",
+      "viewName": "Uninstall",
+      "params": [
+        {
+          "name": "chartName",
+          "viewName": "Chart name",
           "type": "string"
-        },
-        { 
-          "name": "endpointUrl",
-          "viewName": "Endpoint URL",
-          "type": "string"
-        },
-        {
-          "name": "caCert",
-          "viewName": "Certificate Authority",
-          "type": "vault"
-        },
-        {
-          "name": "token",
-          "viewName": "Service Account Token",
-          "type": "vault"
-        },
-        {
-          "name": "saName",
-          "viewName": "Service Account Name",
-          "type": "string"
-        },
-        {
-          "name": "helmVars",
-          "viewName": "Helm Variables",
-          "type": "text"
         }
       ]
     }
