@@ -1,5 +1,4 @@
 const {
-  helpers,
   docker,
 } = require("@kaholo/plugin-library");
 const { promisify } = require("util");
@@ -150,6 +149,7 @@ async function runCommand(parameters) {
     kubeApiServer,
     kubeUser,
     cliCommand,
+    namespace,
   } = parameters;
 
   const [certificatePath, certificateFileName] = splitDirectory(certificateFilePath);
@@ -158,12 +158,23 @@ async function runCommand(parameters) {
     certificateVolumeDefinition,
   ];
 
-  const authenticationParameters = [
-    "--kube-ca-file", `$${certificateVolumeDefinition.mountPoint.name}/${certificateFileName}`,
-    "--kube-token", kubeToken,
-    "--kube-apiserver", kubeApiServer,
-    "--kube-as-user", kubeUser,
-  ];
+  const authenticationParametersMap = new Map([
+    ["--kube-ca-file", `$${certificateVolumeDefinition.mountPoint.name}/${certificateFileName}`],
+    ["--kube-token", kubeToken],
+    ["--kube-apiserver", kubeApiServer],
+    ["--kube-as-user", kubeUser],
+  ]);
+
+  const additionalParametersMap = new Map();
+  if (namespace) {
+    additionalParametersMap.set("--namespace", namespace);
+  }
+
+  const sanitizedParametersArray = sanitizeParameters(
+    cliCommand,
+    authenticationParametersMap,
+    additionalParametersMap,
+  );
 
   const dockerEnvironmentalVariables = volumeDefinitions.reduce(
     (acc, cur) => ({
@@ -183,7 +194,7 @@ async function runCommand(parameters) {
 
   const helmCommand = `\
 ${sanitizeCommand(cliCommand)} \
-${authenticationParameters.join(" ")}`;
+${sanitizedParametersArray.join(" ")}`;
 
   const command = docker.buildDockerCommand({
     command: helmCommand,
@@ -253,6 +264,24 @@ function sanitizeCommand(command) {
   return command.startsWith(HELM_CLI_NAME)
     ? command.slice(HELM_CLI_NAME.length).trim()
     : command;
+}
+
+function sanitizeParameters(command, authorizationParamsMap, additionalParamsMap) {
+  const sanitizedParameters = [];
+
+  authorizationParamsMap.forEach((value, key) => {
+    if (!command.includes(key)) {
+      sanitizedParameters.push(key, value);
+    }
+  });
+
+  additionalParamsMap.forEach((value, key) => {
+    if (!command.includes(key)) {
+      sanitizedParameters.push(key, value);
+    }
+  });
+
+  return sanitizedParameters;
 }
 
 module.exports = {
