@@ -17,7 +17,6 @@ async function install(parameters) {
     namespace,
     chartDirectory,
     releaseName,
-    generateName,
     valuesOverride,
   } = parameters;
 
@@ -36,10 +35,7 @@ async function install(parameters) {
     "--kube-as-user", "$KUBE_USER",
   ];
 
-  const releaseNameParameters = generateReleaseNameParameters({
-    releaseName,
-    generateName,
-  });
+  const releaseNameParameter = releaseName || "--generate-name";
 
   const installationParameters = generateInstallationParameters({
     namespace,
@@ -70,7 +66,7 @@ async function install(parameters) {
 
   const helmCommand = `\
 install \
-${releaseNameParameters.join(" ")} \
+${releaseNameParameter} \
 $${chartVolumeDefinition.mountPoint.name} \
 ${installationParameters.join(" ")} \
 ${authenticationParameters.join(" ")}`;
@@ -94,7 +90,7 @@ async function uninstall(parameters) {
     kubeApiServer,
     kubeUser,
     namespace,
-    chartName,
+    releaseName,
   } = parameters;
 
   const [certificatePath, certificateFileName] = splitDirectory(certificateFilePath);
@@ -138,7 +134,7 @@ async function uninstall(parameters) {
 
   const helmCommand = `\
 uninstall \
-${chartName} \
+${releaseName} \
 ${installationParameters.join(" ")} \
 ${authenticationParameters.join(" ")}`;
 
@@ -160,7 +156,7 @@ async function runCommand(parameters) {
     kubeToken,
     kubeApiServer,
     kubeUser,
-    cliCommand,
+    command,
     namespace,
   } = parameters;
 
@@ -183,7 +179,7 @@ async function runCommand(parameters) {
   }
 
   const sanitizedParametersMap = sanitizeParameters(
-    cliCommand,
+    command,
     authenticationParametersMap,
     additionalParametersMap,
   );
@@ -215,44 +211,19 @@ async function runCommand(parameters) {
   );
 
   const helmCommand = `\
-${sanitizeCommand(cliCommand)} \
+${sanitizeCommand(command)} \
 ${parametersWithEnvironmentalVariablesArray.join(" ")}`;
 
-  const command = docker.buildDockerCommand({
+  const completeCommand = docker.buildDockerCommand({
     command: helmCommand,
     image: HELM_IMAGE_NAME,
     environmentVariables: dockerEnvironmentalVariables,
     volumeDefinitionsArray: volumeDefinitions,
   });
 
-  return exec(command, {
+  return exec(completeCommand, {
     env: shellEnvironmentalVariables,
   });
-}
-
-function generateReleaseNameParameters({
-  releaseName,
-  generateName,
-}) {
-  if (releaseName && generateName) {
-    throw new Error("Please provide either Release Name or Generate Name parameter.");
-  }
-
-  if (!releaseName && !generateName) {
-    throw new Error("Please provide Release Name or Generate Name parameter.");
-  }
-
-  const params = [];
-
-  if (releaseName) {
-    params.push(releaseName);
-  }
-
-  if (generateName) {
-    params.push("--generate-name");
-  }
-
-  return params;
 }
 
 function generateInstallationParameters(pluginParams) {

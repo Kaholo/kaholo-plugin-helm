@@ -49,13 +49,8 @@
         {
           "name": "releaseName",
           "viewName": "Release name",
-          "type": "string"
-        },
-        {
-          "name": "generateName",
-          "viewName": "Generate Name",
-          "type": "boolean",
-          "description": "Generate the Chart name if it is not supplied"
+          "type": "string",
+          "description": "Generates the name if not provided"
         },
         {
           "name": "valuesOverrides",
@@ -71,18 +66,18 @@
       "viewName": "Uninstall",
       "params": [
         {
-          "name": "chartName",
-          "viewName": "Chart name",
+          "name": "releaseName",
+          "viewName": "Release name",
           "type": "string"
         }
       ]
     }, {
       "name": "runCommand",
-      "viewName": "Run Command",
+      "viewName": "Run Helm Command",
       "params": [
         {
-          "name": "cliCommand",
-          "viewName": "CLI Command",
+          "name": "command",
+          "viewName": "Command",
           "type": "string",
           "placeholder": "list"
         }
