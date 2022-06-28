@@ -30,10 +30,10 @@ async function install(parameters) {
   ];
 
   const authenticationParameters = [
-    "--kube-ca-file", `$${certificateVolumeDefinition.mountPoint.name}/${certificateFileName}`,
-    "--kube-token", kubeToken,
-    "--kube-apiserver", kubeApiServer,
-    "--kube-as-user", kubeUser,
+    "--kube-ca-file", "$KUBE_CA_FILE",
+    "--kube-token", "$KUBE_TOKEN",
+    "--kube-apiserver", "$KUBE_APISERVER",
+    "--kube-as-user", "$KUBE_USER",
   ];
 
   const releaseNameParameters = generateReleaseNameParameters({
@@ -59,7 +59,13 @@ async function install(parameters) {
       ...acc,
       [cur.path.name]: cur.path.value,
     }),
-    dockerEnvironmentalVariables,
+    {
+      KUBE_CA_FILE: `${certificateVolumeDefinition.mountPoint.value}/${certificateFileName}`,
+      KUBE_TOKEN: kubeToken,
+      KUBE_APISERVER: kubeApiServer,
+      KUBE_USER: kubeUser,
+      ...dockerEnvironmentalVariables,
+    },
   );
 
   const helmCommand = `\
@@ -98,10 +104,10 @@ async function uninstall(parameters) {
   ];
 
   const authenticationParameters = [
-    "--kube-ca-file", `$${certificateVolumeDefinition.mountPoint.name}/${certificateFileName}`,
-    "--kube-token", kubeToken,
-    "--kube-apiserver", kubeApiServer,
-    "--kube-as-user", kubeUser,
+    "--kube-ca-file", "$KUBE_CA_FILE",
+    "--kube-token", "$KUBE_TOKEN",
+    "--kube-apiserver", "$KUBE_APISERVER",
+    "--kube-as-user", "$KUBE_USER",
   ];
 
   const installationParameters = generateInstallationParameters({
@@ -121,7 +127,13 @@ async function uninstall(parameters) {
       ...acc,
       [cur.path.name]: cur.path.value,
     }),
-    dockerEnvironmentalVariables,
+    {
+      KUBE_CA_FILE: `${certificateVolumeDefinition.mountPoint.value}/${certificateFileName}`,
+      KUBE_TOKEN: kubeToken,
+      KUBE_APISERVER: kubeApiServer,
+      KUBE_USER: kubeUser,
+      ...dockerEnvironmentalVariables,
+    },
   );
 
   const helmCommand = `\
@@ -159,7 +171,7 @@ async function runCommand(parameters) {
   ];
 
   const authenticationParametersMap = new Map([
-    ["--kube-ca-file", `$${certificateVolumeDefinition.mountPoint.name}/${certificateFileName}`],
+    ["--kube-ca-file", `${certificateVolumeDefinition.mountPoint.value}/${certificateFileName}`],
     ["--kube-token", kubeToken],
     ["--kube-apiserver", kubeApiServer],
     ["--kube-as-user", kubeUser],
@@ -170,10 +182,17 @@ async function runCommand(parameters) {
     additionalParametersMap.set("--namespace", namespace);
   }
 
-  const sanitizedParametersArray = sanitizeParameters(
+  const sanitizedParametersMap = sanitizeParameters(
     cliCommand,
     authenticationParametersMap,
     additionalParametersMap,
+  );
+  // eslint-disable-next-line max-len
+  const parametersWithEnvironmentalVariablesArray = paramsMapToParamsWithEnvironmentalVariablesArray(
+    sanitizedParametersMap,
+  );
+  const environmentalVariablesContainingParametersObject = paramsMapToEnvironmentalVariablesObject(
+    sanitizedParametersMap,
   );
 
   const dockerEnvironmentalVariables = volumeDefinitions.reduce(
@@ -189,12 +208,15 @@ async function runCommand(parameters) {
       ...acc,
       [cur.path.name]: cur.path.value,
     }),
-    dockerEnvironmentalVariables,
+    {
+      ...dockerEnvironmentalVariables,
+      ...environmentalVariablesContainingParametersObject,
+    },
   );
 
   const helmCommand = `\
 ${sanitizeCommand(cliCommand)} \
-${sanitizedParametersArray.join(" ")}`;
+${parametersWithEnvironmentalVariablesArray.join(" ")}`;
 
   const command = docker.buildDockerCommand({
     command: helmCommand,
@@ -267,21 +289,55 @@ function sanitizeCommand(command) {
 }
 
 function sanitizeParameters(command, authorizationParamsMap, additionalParamsMap) {
-  const sanitizedParameters = [];
+  const sanitizedParameters = new Map();
 
   authorizationParamsMap.forEach((value, key) => {
     if (!command.includes(key)) {
-      sanitizedParameters.push(key, value);
+      sanitizedParameters.set(key, value);
     }
   });
 
   additionalParamsMap.forEach((value, key) => {
     if (!command.includes(key)) {
-      sanitizedParameters.push(key, value);
+      sanitizedParameters.set(key, value);
     }
   });
 
   return sanitizedParameters;
+}
+
+function paramsMapToParamsWithEnvironmentalVariablesArray(paramsMap) {
+  return Array.from(
+    paramsMap,
+    ([key]) => ([key, generateEnvironmentalVariableName(key)]),
+  ).flat();
+}
+
+function paramsMapToEnvironmentalVariablesObject(paramsMap) {
+  return Object.fromEntries(
+    Array.from(
+      paramsMap,
+      ([key, value]) => ([generateEnvironmentalVariableName(key).substring(1), value]),
+    ),
+  );
+}
+
+function generateEnvironmentalVariableName(parameterName) {
+  const regex = /-/g;
+
+  let result = parameterName.replace(regex, "_");
+
+  if (result.startsWith("_")) {
+    result = result.substring(1);
+  }
+
+  if (result.startsWith("_")) {
+    result = result.substring(1);
+  }
+
+  result = `$${result.toUpperCase()}`;
+
+  return result;
 }
 
 module.exports = {
