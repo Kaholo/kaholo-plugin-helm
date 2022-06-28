@@ -7,6 +7,19 @@
   "version": "2.0.0",
   "description": "Helm CLI wrapper",
   "category": "CONTAINERS",
+  "keywords": [
+    "helm",
+    "chart",
+    "release",
+    "kubernetes",
+    "k8s",
+    "cloud",
+    "container",
+    "cluster",
+    "CLI",
+    "docker",
+    "kubectl"
+  ],
   "auth": {
     "authId": "helm",
     "params": [{
@@ -68,7 +81,8 @@
         {
           "name": "releaseName",
           "viewName": "Release name",
-          "type": "string"
+          "type": "string",
+          "required": true
         }
       ]
     }, {

@@ -23,6 +23,7 @@ async function install(parameters) {
   const [certificatePath, certificateFileName] = splitDirectory(certificateFilePath);
   const certificateVolumeDefinition = docker.createVolumeDefinition(certificatePath);
   const chartVolumeDefinition = docker.createVolumeDefinition(chartDirectory);
+  wrapChartVolumeDefinition(chartVolumeDefinition, chartDirectory);
   const volumeDefinitions = [
     certificateVolumeDefinition,
     chartVolumeDefinition,
@@ -224,6 +225,16 @@ ${parametersWithEnvironmentalVariablesArray.join(" ")}`;
   return exec(completeCommand, {
     env: shellEnvironmentalVariables,
   });
+}
+
+function wrapChartVolumeDefinition(volumeDefinition, chartDirectory) {
+  const [, chartDirectoryName] = splitDirectory(chartDirectory);
+
+  /* eslint-disable no-param-reassign,no-unused-expressions */
+  volumeDefinition.mountPoint.value.endsWith("/")
+    ? volumeDefinition.mountPoint.value += chartDirectoryName
+    : volumeDefinition.mountPoint.value += `/${chartDirectoryName}`;
+  /* eslint-enable no-param-reassign,no-unused-expressions */
 }
 
 function generateInstallationParameters(pluginParams) {
