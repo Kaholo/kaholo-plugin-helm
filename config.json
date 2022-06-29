@@ -1,0 +1,101 @@
+{
+  "name": "Helm",
+  "type": "executer",
+  "imgUrl": "icon.png",
+  "execProgram": "node",
+  "main": "app.js",
+  "version": "2.0.0",
+  "description": "Helm CLI wrapper",
+  "category": "CONTAINERS",
+  "keywords": [
+    "helm",
+    "chart",
+    "release",
+    "kubernetes",
+    "k8s",
+    "cloud",
+    "container",
+    "cluster",
+    "CLI",
+    "docker",
+    "kubectl"
+  ],
+  "auth": {
+    "authId": "helm",
+    "params": [{
+      "name": "kubeCertificate",
+      "viewName": "Kubernetes Certificate file content",
+      "type": "string",
+      "required": true
+    }, {
+      "name": "kubeToken",
+      "viewName": "Kubernetes token",
+      "type": "vault",
+      "required": true
+    }, {
+      "name": "kubeApiServer",
+      "viewName": "API server address",
+      "type": "string",
+      "required": true
+    }, {
+      "name": "kubeUser",
+      "viewName": "Username",
+      "type": "string",
+      "required": true
+    }, {
+      "name": "namespace",
+      "viewName": "Namespace",
+      "type": "string"
+    }]
+  },
+  "methods": [
+    {
+      "name": "install",
+      "viewName": "Install",
+      "params": [
+        {
+          "name": "chartDirectory",
+          "viewName": "Chart directory",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "releaseName",
+          "viewName": "Release name",
+          "type": "string",
+          "description": "Generates the name if not provided"
+        },
+        {
+          "name": "valuesOverrides",
+          "viewName": "Values overrides",
+          "type": "text",
+          "parserType": "array",
+          "description": "Values overriding the values.yaml content",
+          "placeholder": "service.port=8080"
+        }
+      ]
+    }, {
+      "name": "uninstall",
+      "viewName": "Uninstall",
+      "params": [
+        {
+          "name": "releaseName",
+          "viewName": "Release name",
+          "type": "string",
+          "required": true
+        }
+      ]
+    }, {
+      "name": "runCommand",
+      "viewName": "Run Helm Command",
+      "params": [
+        {
+          "name": "command",
+          "viewName": "Command",
+          "type": "string",
+          "placeholder": "list"
+        }
+      ]
+    }
+  ]
+}
