@@ -79,6 +79,8 @@ ${authenticationParameters.join(" ")}`;
     volumeDefinitionsArray: volumeDefinitions,
   });
 
+  logToActivityLog(`Executing ${command}`);
+
   return exec(command, {
     env: shellEnvironmentalVariables,
   });
@@ -145,6 +147,8 @@ ${authenticationParameters.join(" ")}`;
     environmentVariables: dockerEnvironmentalVariables,
     volumeDefinitionsArray: volumeDefinitions,
   });
+
+  logToActivityLog(`Executing ${command}`);
 
   return exec(command, {
     env: shellEnvironmentalVariables,
@@ -221,6 +225,8 @@ ${parametersWithEnvironmentalVariablesArray.join(" ")}`;
     environmentVariables: dockerEnvironmentalVariables,
     volumeDefinitionsArray: volumeDefinitions,
   });
+
+  logToActivityLog(`Executing ${completeCommand}`);
 
   return exec(completeCommand, {
     env: shellEnvironmentalVariables,
@@ -320,6 +326,14 @@ function generateEnvironmentalVariableName(parameterName) {
   result = `$${result.toUpperCase()}`;
 
   return result;
+}
+
+function logToActivityLog(message) {
+  // TODO: Change console.error to console.info
+  // Right now (Kaholo v4.3.2) console.info
+  // does not print messages to Activity Log
+  // Jira ticket: https://kaholo.atlassian.net/browse/KAH-3636
+  console.error(message);
 }
 
 module.exports = {
