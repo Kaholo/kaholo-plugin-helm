@@ -7,6 +7,7 @@ const path = require("path");
 
 const HELM_CLI_NAME = "helm";
 const HELM_IMAGE_NAME = "alpine/helm";
+const LOCAL_HELM_HOME_PATH = "/tmp/helmHome";
 
 async function install(parameters) {
   const {
@@ -220,6 +221,10 @@ ${parametersWithEnvironmentalVariablesArray.join(" ")}`;
     image: HELM_IMAGE_NAME,
     environmentVariables: dockerEnvironmentalVariables,
     volumeDefinitionsArray: volumeDefinitions,
+    additionalArguments: [
+      "-v",
+      `${LOCAL_HELM_HOME_PATH}:/root/`,
+    ],
   });
 
   return exec(completeCommand, {
