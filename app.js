@@ -2,19 +2,30 @@ const {
   bootstrap,
   helpers,
 } = require("@kaholo/plugin-library");
+
 const helmCli = require("./helm-cli");
+const {
+  extractUserFromJWT,
+  validateCertificate,
+} = require("./params-helpers");
 
 async function install(pluginParameters) {
-  const { kubeCertificate } = pluginParameters;
+  const {
+    kubeCertificate,
+    kubeToken,
+  } = pluginParameters;
+  const kubeUser = extractUserFromJWT(kubeToken);
+  const validatedCertificate = validateCertificate(kubeCertificate);
 
   let result;
 
   await helpers.temporaryFileSentinel(
-    [kubeCertificate],
+    [validatedCertificate],
     async (certificateFilePath) => {
       result = await helmCli.install({
         ...pluginParameters,
         certificateFilePath,
+        kubeUser,
       });
     },
   );
@@ -29,16 +40,22 @@ async function install(pluginParameters) {
 }
 
 async function uninstall(pluginParameters) {
-  const { kubeCertificate } = pluginParameters;
+  const {
+    kubeCertificate,
+    kubeToken,
+  } = pluginParameters;
+  const kubeUser = extractUserFromJWT(kubeToken);
+  const validatedCertificate = validateCertificate(kubeCertificate);
 
   let result;
 
   await helpers.temporaryFileSentinel(
-    [kubeCertificate],
+    [validatedCertificate],
     async (certificateFilePath) => {
       result = await helmCli.uninstall({
         ...pluginParameters,
         certificateFilePath,
+        kubeUser,
       });
     },
   );
@@ -55,16 +72,20 @@ async function uninstall(pluginParameters) {
 async function runCommand(pluginParameters) {
   const {
     kubeCertificate,
+    kubeToken,
   } = pluginParameters;
+  const kubeUser = extractUserFromJWT(kubeToken);
+  const validatedCertificate = validateCertificate(kubeCertificate);
 
   let result;
 
   await helpers.temporaryFileSentinel(
-    [kubeCertificate],
+    [validatedCertificate],
     async (certificateFilePath) => {
       result = await helmCli.runCommand({
         ...pluginParameters,
         certificateFilePath,
+        kubeUser,
       });
     },
   );
