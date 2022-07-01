@@ -25,6 +25,7 @@
     "params": [{
       "name": "kubeCertificate",
       "viewName": "Kubernetes Certificate file content",
+      "description": "PEM and Base64 encoded certificates are accepted.",
       "type": "string",
       "required": true
     }, {
@@ -35,11 +36,6 @@
     }, {
       "name": "kubeApiServer",
       "viewName": "API server address",
-      "type": "string",
-      "required": true
-    }, {
-      "name": "kubeUser",
-      "viewName": "Username",
       "type": "string",
       "required": true
     }, {
