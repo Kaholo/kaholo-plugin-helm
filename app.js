@@ -2,9 +2,12 @@ const {
   bootstrap,
   helpers,
 } = require("@kaholo/plugin-library");
-const decodeJwt = require("jwt-decode");
 
 const helmCli = require("./helm-cli");
+const {
+  extractUserFromJWT,
+  validateCertificate,
+} = require("./params-helpers");
 
 async function install(pluginParameters) {
   const {
@@ -94,28 +97,6 @@ async function runCommand(pluginParameters) {
   }
 
   return stdout;
-}
-
-function extractUserFromJWT(token) {
-  const decodedData = decodeJwt(token);
-
-  const user = decodedData?.sub;
-  if (!user) {
-    throw new Error(
-      "Failed to extract kube-user from kube-token. "
-      + "The token doesn't contain kube-user.",
-    );
-  }
-
-  return user;
-}
-
-function validateCertificate(certificate) {
-  if (!certificate.startsWith("-----BEGIN CERTIFICATE-----")) {
-    return Buffer.from(certificate, "base64").toString();
-  }
-
-  return certificate;
 }
 
 module.exports = bootstrap({
