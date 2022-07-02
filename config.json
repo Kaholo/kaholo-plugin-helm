@@ -4,9 +4,9 @@
   "imgUrl": "icon.png",
   "execProgram": "node",
   "main": "app.js",
-  "version": "2.0.0",
-  "description": "Helm CLI wrapper",
-  "category": "CONTAINERS",
+  "version": "2.1.0",
+  "description": "Helm is a Package Manager for Kubernetes",
+  "category": "Containers",
   "keywords": [
     "helm",
     "chart",
@@ -16,33 +16,51 @@
     "cloud",
     "container",
     "cluster",
-    "CLI",
+    "cli",
     "docker",
-    "kubectl"
+    "kubectl",
+    "pod"
+  ],
+  "settings": [
+    {
+      "name": "chartDirectory",
+      "viewName": "Default Working Directory",
+      "type": "string",
+      "description": "The directory on the Kaholo agent that contains Helm charts",
+      "placeholder": "/home/helm/helmchartsrepo",
+      "learnUrl": "https://helm.sh/docs/topics/charts/"
+    }
   ],
   "auth": {
-    "authId": "helm",
-    "params": [{
-      "name": "kubeCertificate",
-      "viewName": "Kubernetes Certificate file content",
-      "description": "PEM and Base64 encoded certificates are accepted.",
-      "type": "string",
-      "required": true
-    }, {
-      "name": "kubeToken",
-      "viewName": "Kubernetes token",
-      "type": "vault",
-      "required": true
-    }, {
-      "name": "kubeApiServer",
-      "viewName": "API server address",
-      "type": "string",
-      "required": true
-    }, {
-      "name": "namespace",
-      "viewName": "Namespace",
-      "type": "string"
-    }]
+    "authId": "kubernetesServiceAccountWithToken",
+    "params": [
+      {
+        "name": "kubeCertificate",
+        "viewName": "Cluster CA Certificate",
+        "description": "Either PEM or Base64 encoded is acceptable",
+        "type": "string",
+        "required": true
+      },
+      {
+        "name": "kubeToken",
+        "viewName": "Service Account Token",
+        "description": "A JWT token associated with the service account",
+        "type": "vault",
+        "required": true
+      },
+      {
+        "name": "kubeApiServer",
+        "viewName": "API Server Endpoint",
+        "description": "For example \"https://83.89.101.107\"",
+        "type": "string",
+        "required": true
+      },
+      {
+        "name": "namespace",
+        "viewName": "Namespace",
+        "type": "string"
+      }
+    ]
   },
   "methods": [
     {
@@ -51,26 +69,33 @@
       "params": [
         {
           "name": "chartDirectory",
-          "viewName": "Chart directory",
+          "viewName": "Working directory",
           "type": "string",
-          "required": true
+          "required": true,
+          "description": "The directory on the Kaholo agent that contains Helm charts",
+          "placeholder": "/home/helm/helmchartsrepo",
+          "learnUrl": "https://helm.sh/docs/topics/charts"
         },
         {
           "name": "releaseName",
           "viewName": "Release name",
           "type": "string",
-          "description": "Generates the name if not provided"
+          "description": "If not provided a random name will be generated.",
+          "placeholder": "wunderapp3-qa-rc02",
+          "learnUrl": "https://helm.sh/docs/glossary/#release"
         },
         {
           "name": "valuesOverrides",
           "viewName": "Values overrides",
           "type": "text",
           "parserType": "array",
-          "description": "Values overriding the values.yaml content",
-          "placeholder": "service.port=8080"
+          "description": "Values given here override those found in values.yaml.",
+          "placeholder": "service.port=8080",
+          "learnUrl": "https://helm.sh/docs/chart_template_guide/values_files"
         }
       ]
-    }, {
+    },
+    {
       "name": "uninstall",
       "viewName": "Uninstall",
       "params": [
@@ -78,10 +103,14 @@
           "name": "releaseName",
           "viewName": "Release name",
           "type": "string",
-          "required": true
+          "required": true,
+          "description": "The name of the Helm release you wish to uninstall",
+          "placeholder": "wunderapp3-qa-rc02",
+          "learnUrl": "https://helm.sh/docs/glossary/#release"
         }
       ]
-    }, {
+    },
+    {
       "name": "runCommand",
       "viewName": "Run Helm Command",
       "params": [
@@ -89,7 +118,9 @@
           "name": "command",
           "viewName": "Command",
           "type": "string",
-          "placeholder": "list"
+          "description": "Run any command beginning with \"helm\"",
+          "placeholder": "helm repo add bitnami https://charts.bitnami.com/bitnami",
+          "learnUrl": "https://helm.sh/docs/helm/helm/"
         }
       ]
     }
