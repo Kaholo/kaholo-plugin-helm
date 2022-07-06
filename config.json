@@ -25,7 +25,7 @@
     {
       "name": "chartName",
       "viewName": "Default Chart",
-      "type": "string"
+      "type": "string",
     }
   ],
   "auth": {
@@ -69,8 +69,8 @@
           "viewName": "Chart",
           "type": "string",
           "required": true,
-          "description": "Directory or repository pointing to a Helm chart",
-          "placeholder": "/home/helm/helmchartsrepo or bitnami/drupal",
+          "description": "A directory on the Kaholo agent that contains a Helm chart (Chart.yaml) OR repo/chartname",
+          "placeholder": "/home/helm/helmchartsrepo/myapp or bitnami/drupal",
           "learnUrl": "https://helm.sh/docs/topics/charts"
         },
         {
