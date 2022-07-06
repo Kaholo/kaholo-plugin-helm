@@ -23,12 +23,9 @@
   ],
   "settings": [
     {
-      "name": "chartDirectory",
-      "viewName": "Default Working Directory",
-      "type": "string",
-      "description": "The directory on the Kaholo agent that contains Helm charts",
-      "placeholder": "/home/helm/helmchartsrepo",
-      "learnUrl": "https://helm.sh/docs/topics/charts/"
+      "name": "chartName",
+      "viewName": "Default Chart",
+      "type": "string"
     }
   ],
   "auth": {
@@ -68,12 +65,12 @@
       "viewName": "Install",
       "params": [
         {
-          "name": "chartDirectory",
-          "viewName": "Working directory",
+          "name": "chartName",
+          "viewName": "Chart",
           "type": "string",
           "required": true,
-          "description": "The directory on the Kaholo agent that contains Helm charts",
-          "placeholder": "/home/helm/helmchartsrepo",
+          "description": "Directory or repository pointing to a Helm chart",
+          "placeholder": "/home/helm/helmchartsrepo or bitnami/drupal",
           "learnUrl": "https://helm.sh/docs/topics/charts"
         },
         {
