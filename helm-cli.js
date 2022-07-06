@@ -303,6 +303,10 @@ function splitDirectory(directory) {
 function extractChartDirectoryFromCommand(command) {
   const directory = helpers.extractPathsFromCommand(command);
 
+  if (directory.length < 1 || !directory[0].path) {
+    return null;
+  }
+
   return directory[0].path;
 }
 
