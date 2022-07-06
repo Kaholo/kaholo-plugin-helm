@@ -1,5 +1,6 @@
 const {
   docker,
+  helpers,
 } = require("@kaholo/plugin-library");
 const { promisify } = require("util");
 const exec = promisify(require("child_process").exec);
@@ -265,7 +266,7 @@ ${parametersWithEnvironmentalVariablesArray.join(" ")}`;
 }
 
 function addExtraPathToVolumeDefinition(volumeDefinition, workingDirectory) {
-  const [, workingDirectoryName] = splitDirectory(workingDirectory);
+  const workingDirectoryName = path.basename(workingDirectory);
 
   /* eslint-disable no-param-reassign,no-unused-expressions */
   volumeDefinition.mountPoint.value.endsWith("/")
@@ -301,13 +302,9 @@ function splitDirectory(directory) {
 }
 
 function extractChartDirectoryFromCommand(command) {
-  const directory = command.match(ABSOLUTE_PATH_REGEXP);
+  const directory = helpers.extractPathsFromCommand(command);
 
-  if (!directory) {
-    return null;
-  }
-
-  return directory[0].trim();
+  return directory[0].path;
 }
 
 function sanitizeParameters(command, authorizationParamsMap, additionalParamsMap) {
