@@ -10,7 +10,6 @@ const HELM_CLI_NAME = "helm";
 const HELM_IMAGE_NAME = "alpine/helm";
 const LOCAL_HELM_HOME_PATH = "/tmp/helmHome";
 const TOKEN_REGEXP = /(HELM_KUBETOKEN=")([\w\d-.]+)?(")/;
-const ABSOLUTE_PATH_REGEXP = /\s(\/[\w-]+)+/;
 
 async function install(parameters) {
   const {
