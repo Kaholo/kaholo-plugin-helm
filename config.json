@@ -23,13 +23,14 @@
   ],
   "settings": [
     {
-      "name": "chartName",
-      "viewName": "Default Chart",
-      "type": "string"
-    },
-    {
       "name": "namespace",
       "viewName": "Namespace",
+      "type": "string",
+      "placeholder": "default"
+    },
+    {
+      "name": "workingDirectory",
+      "viewName": "Default Working Directory",
       "type": "string"
     }
   ],
@@ -93,6 +94,12 @@
         {
           "name": "namespace",
           "viewName": "Namespace",
+          "type": "string",
+          "placeholder": "default"
+        },
+        {
+          "name": "workingDirectory",
+          "viewName": "Default Working Directory",
           "type": "string"
         }
       ]
@@ -113,7 +120,8 @@
         {
           "name": "namespace",
           "viewName": "Namespace",
-          "type": "string"
+          "type": "string",
+          "placeholder": "default"
         }
       ]
     },
@@ -128,6 +136,11 @@
           "description": "Run any command beginning with \"helm\"",
           "placeholder": "helm repo add bitnami https://charts.bitnami.com/bitnami",
           "learnUrl": "https://helm.sh/docs/helm/helm/"
+        },
+        {
+          "name": "workingDirectory",
+          "viewName": "Default Working Directory",
+          "type": "string"
         }
       ]
     }
