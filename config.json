@@ -105,6 +105,49 @@
       ]
     },
     {
+      "name": "upgrade",
+      "viewName": "Upgrade",
+      "params": [
+        {
+          "name": "chartName",
+          "viewName": "Chart",
+          "type": "string",
+          "required": true,
+          "description": "A directory on the Kaholo agent that contains a Helm chart (Chart.yaml) OR repo/chartname",
+          "placeholder": "/home/helm/helmchartsrepo/myapp or bitnami/drupal",
+          "learnUrl": "https://helm.sh/docs/topics/charts"
+        },
+        {
+          "name": "releaseName",
+          "viewName": "Release name",
+          "type": "string",
+          "description": "If not provided a random name will be generated.",
+          "placeholder": "wunderapp3-qa-rc02",
+          "learnUrl": "https://helm.sh/docs/glossary/#release"
+        },
+        {
+          "name": "valuesOverrides",
+          "viewName": "Values overrides",
+          "type": "text",
+          "parserType": "array",
+          "description": "Values given here override those found in values.yaml.",
+          "placeholder": "service.port=8080",
+          "learnUrl": "https://helm.sh/docs/chart_template_guide/values_files"
+        },
+        {
+          "name": "namespace",
+          "viewName": "Namespace",
+          "type": "string",
+          "placeholder": "default"
+        },
+        {
+          "name": "workingDirectory",
+          "viewName": "Default Working Directory",
+          "type": "string"
+        }
+      ]
+    },
+    {
       "name": "uninstall",
       "viewName": "Uninstall",
       "params": [

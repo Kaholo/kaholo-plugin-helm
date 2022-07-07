@@ -39,6 +39,36 @@ async function install(pluginParameters) {
   return stdout;
 }
 
+async function upgrade(pluginParameters) {
+  const {
+    kubeCertificate,
+    kubeToken,
+  } = pluginParameters;
+  const kubeUser = extractUserFromJWT(kubeToken);
+  const validatedCertificate = validateCertificate(kubeCertificate);
+
+  let result;
+
+  await helpers.temporaryFileSentinel(
+    [validatedCertificate],
+    async (certificateFilePath) => {
+      result = await helmCli.upgrade({
+        ...pluginParameters,
+        certificateFilePath,
+        kubeUser,
+      });
+    },
+  );
+
+  const { stdout, stderr } = result;
+
+  if (!stdout && stderr) {
+    throw new Error(stderr);
+  }
+
+  return stdout;
+}
+
 async function uninstall(pluginParameters) {
   const {
     kubeCertificate,
@@ -101,6 +131,7 @@ async function runCommand(pluginParameters) {
 
 module.exports = bootstrap({
   install,
+  upgrade,
   uninstall,
   runCommand,
 });

@@ -108,7 +108,109 @@ ${authenticationParameters.join(" ")}`;
   });
 
   logToActivityLog(`Executing ${command}`);
-  console.log("ENV", shellEnvironmentalVariables);
+
+  return exec(command, {
+    env: shellEnvironmentalVariables,
+  });
+}
+
+async function upgrade(parameters) {
+  const {
+    certificateFilePath,
+    kubeToken,
+    kubeApiServer,
+    kubeUser,
+    namespace,
+    chartName,
+    releaseName,
+    valuesOverrides,
+    workingDirectory,
+  } = parameters;
+
+  const additionalArguments = [
+    "-v",
+    `${LOCAL_HELM_HOME_PATH}:/root/`,
+  ];
+
+  const [certificatePath, certificateFileName] = splitDirectory(certificateFilePath);
+  const certificateVolumeDefinition = docker.createVolumeDefinition(certificatePath);
+  const volumeDefinitions = [
+    certificateVolumeDefinition,
+  ];
+
+  let chart = chartName;
+  if (workingDirectory) {
+    const absoluteWorkingDirectory = path.resolve(workingDirectory);
+
+    const workingDirectoryVolumeDefinition = docker.createVolumeDefinition(
+      absoluteWorkingDirectory,
+    );
+    volumeDefinitions.push(workingDirectoryVolumeDefinition);
+
+    additionalArguments.push("-w", `$${workingDirectoryVolumeDefinition.mountPoint.name}`);
+  } else if (chartName.startsWith("/") || chartName.startsWith("./")) {
+    const absoluteChartPath = path.resolve(chartName);
+
+    const [chartDirectory, pathChartName] = splitDirectory(absoluteChartPath);
+
+    const chartVolumeDefinition = docker.createVolumeDefinition(chartDirectory);
+    volumeDefinitions.push(chartVolumeDefinition);
+
+    chart = `$${chartVolumeDefinition.mountPoint.name}/${pathChartName}`;
+  }
+
+  const authenticationParameters = [
+    "--kube-ca-file", "$KUBE_CA_FILE",
+    "--kube-token", "$KUBE_TOKEN",
+    "--kube-apiserver", "$KUBE_APISERVER",
+    "--kube-as-user", "$KUBE_USER",
+  ];
+
+  const releaseNameParameter = releaseName || "--generate-name";
+
+  const installationParameters = generateInstallationParameters({
+    namespace,
+    valuesOverrides,
+  });
+
+  const dockerEnvironmentalVariables = volumeDefinitions.reduce(
+    (acc, cur) => ({
+      ...acc,
+      [cur.mountPoint.name]: cur.mountPoint.value,
+    }),
+    {},
+  );
+
+  const shellEnvironmentalVariables = volumeDefinitions.reduce(
+    (acc, cur) => ({
+      ...acc,
+      [cur.path.name]: cur.path.value,
+    }),
+    {
+      KUBE_CA_FILE: `${certificateVolumeDefinition.mountPoint.value}/${certificateFileName}`,
+      KUBE_TOKEN: kubeToken,
+      KUBE_APISERVER: kubeApiServer,
+      KUBE_USER: kubeUser,
+      ...dockerEnvironmentalVariables,
+    },
+  );
+
+  const helmCommand = `\
+upgrade --install \
+${releaseNameParameter} \
+${chart} \
+${installationParameters.join(" ")} \
+${authenticationParameters.join(" ")}`;
+
+  const command = docker.buildDockerCommand({
+    command: helmCommand,
+    image: HELM_IMAGE_NAME,
+    environmentVariables: dockerEnvironmentalVariables,
+    volumeDefinitionsArray: volumeDefinitions,
+    additionalArguments,
+  });
+
+  logToActivityLog(`Executing ${command}`);
 
   return exec(command, {
     env: shellEnvironmentalVariables,
@@ -278,7 +380,7 @@ ${parametersWithEnvironmentalVariablesArray.join(" ")}`;
   });
 
   logToActivityLog(`Executing ${completeCommand}`);
-  console.log("ENV", shellEnvironmentalVariables);
+
   const result = await exec(completeCommand, {
     env: shellEnvironmentalVariables,
   });
@@ -392,6 +494,7 @@ function logToActivityLog(message) {
 
 module.exports = {
   install,
+  upgrade,
   uninstall,
   runCommand,
 };
