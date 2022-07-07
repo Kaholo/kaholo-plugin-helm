@@ -26,6 +26,11 @@
       "name": "chartName",
       "viewName": "Default Chart",
       "type": "string"
+    },
+    {
+      "name": "namespace",
+      "viewName": "Namespace",
+      "type": "string"
     }
   ],
   "auth": {
@@ -51,11 +56,6 @@
         "description": "For example \"https://83.89.101.107\"",
         "type": "string",
         "required": true
-      },
-      {
-        "name": "namespace",
-        "viewName": "Namespace",
-        "type": "string"
       }
     ]
   },
@@ -89,6 +89,11 @@
           "description": "Values given here override those found in values.yaml.",
           "placeholder": "service.port=8080",
           "learnUrl": "https://helm.sh/docs/chart_template_guide/values_files"
+        },
+        {
+          "name": "namespace",
+          "viewName": "Namespace",
+          "type": "string"
         }
       ]
     },
@@ -104,6 +109,11 @@
           "description": "The name of the Helm release you wish to uninstall",
           "placeholder": "wunderapp3-qa-rc02",
           "learnUrl": "https://helm.sh/docs/glossary/#release"
+        },
+        {
+          "name": "namespace",
+          "viewName": "Namespace",
+          "type": "string"
         }
       ]
     },

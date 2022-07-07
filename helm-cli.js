@@ -173,7 +173,6 @@ async function runCommand(parameters) {
     kubeToken,
     kubeApiServer,
     kubeUser,
-    namespace,
   } = parameters;
 
   let { command } = parameters;
@@ -201,9 +200,6 @@ async function runCommand(parameters) {
   ]);
 
   const additionalParametersMap = new Map();
-  if (namespace) {
-    additionalParametersMap.set("--namespace", namespace);
-  }
 
   const sanitizedParametersMap = sanitizeParameters(
     command,
