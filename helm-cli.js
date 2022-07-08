@@ -7,7 +7,7 @@ const exec = promisify(require("child_process").exec);
 const path = require("path");
 
 const HELM_CLI_NAME = "helm";
-const HELM_IMAGE_NAME = "alpine/helm";
+const HELM_IMAGE_NAME = "alpine/helm@sha256:5fa53042d50dacdcbea7eb093d014e1fb964bf5bf473d87ef03ca1a277121ebf";
 const LOCAL_HELM_HOME_PATH = "/tmp/helmHome";
 const TOKEN_REGEXP = /(HELM_KUBETOKEN=")([\w\d-.]+)?(")/;
 
@@ -21,7 +21,13 @@ async function install(parameters) {
     chartName,
     releaseName,
     valuesOverrides,
+    workingDirectory,
   } = parameters;
+
+  const additionalArguments = [
+    "-v",
+    `${LOCAL_HELM_HOME_PATH}:/root/`,
+  ];
 
   const [certificatePath, certificateFileName] = splitDirectory(certificateFilePath);
   const certificateVolumeDefinition = docker.createVolumeDefinition(certificatePath);
@@ -30,11 +36,24 @@ async function install(parameters) {
   ];
 
   let chart = chartName;
-  if (chartName.startsWith("/")) {
-    const chartVolumeDefinition = docker.createVolumeDefinition(chartName);
-    addExtraPathToVolumeDefinition(chartVolumeDefinition, chartName);
+  if (workingDirectory) {
+    const absoluteWorkingDirectory = path.resolve(workingDirectory);
+
+    const workingDirectoryVolumeDefinition = docker.createVolumeDefinition(
+      absoluteWorkingDirectory,
+    );
+    volumeDefinitions.push(workingDirectoryVolumeDefinition);
+
+    additionalArguments.push("-w", `$${workingDirectoryVolumeDefinition.mountPoint.name}`);
+  } else if (chartName.startsWith("/") || chartName.startsWith("./")) {
+    const absoluteChartPath = path.resolve(chartName);
+
+    const [chartDirectory, pathChartName] = splitDirectory(absoluteChartPath);
+
+    const chartVolumeDefinition = docker.createVolumeDefinition(chartDirectory);
     volumeDefinitions.push(chartVolumeDefinition);
-    chart = `$${chartVolumeDefinition.mountPoint.name}`;
+
+    chart = `$${chartVolumeDefinition.mountPoint.name}/${pathChartName}`;
   }
 
   const authenticationParameters = [
@@ -85,10 +104,110 @@ ${authenticationParameters.join(" ")}`;
     image: HELM_IMAGE_NAME,
     environmentVariables: dockerEnvironmentalVariables,
     volumeDefinitionsArray: volumeDefinitions,
-    additionalArguments: [
-      "-v",
-      `${LOCAL_HELM_HOME_PATH}:/root/`,
-    ],
+    additionalArguments,
+  });
+
+  logToActivityLog(`Executing ${command}`);
+
+  return exec(command, {
+    env: shellEnvironmentalVariables,
+  });
+}
+
+async function upgrade(parameters) {
+  const {
+    certificateFilePath,
+    kubeToken,
+    kubeApiServer,
+    kubeUser,
+    namespace,
+    chartName,
+    releaseName,
+    valuesOverrides,
+    workingDirectory,
+  } = parameters;
+
+  const additionalArguments = [
+    "-v",
+    `${LOCAL_HELM_HOME_PATH}:/root/`,
+  ];
+
+  const [certificatePath, certificateFileName] = splitDirectory(certificateFilePath);
+  const certificateVolumeDefinition = docker.createVolumeDefinition(certificatePath);
+  const volumeDefinitions = [
+    certificateVolumeDefinition,
+  ];
+
+  let chart = chartName;
+  if (workingDirectory) {
+    const absoluteWorkingDirectory = path.resolve(workingDirectory);
+
+    const workingDirectoryVolumeDefinition = docker.createVolumeDefinition(
+      absoluteWorkingDirectory,
+    );
+    volumeDefinitions.push(workingDirectoryVolumeDefinition);
+
+    additionalArguments.push("-w", `$${workingDirectoryVolumeDefinition.mountPoint.name}`);
+  } else if (chartName.startsWith("/") || chartName.startsWith("./")) {
+    const absoluteChartPath = path.resolve(chartName);
+
+    const [chartDirectory, pathChartName] = splitDirectory(absoluteChartPath);
+
+    const chartVolumeDefinition = docker.createVolumeDefinition(chartDirectory);
+    volumeDefinitions.push(chartVolumeDefinition);
+
+    chart = `$${chartVolumeDefinition.mountPoint.name}/${pathChartName}`;
+  }
+
+  const authenticationParameters = [
+    "--kube-ca-file", "$KUBE_CA_FILE",
+    "--kube-token", "$KUBE_TOKEN",
+    "--kube-apiserver", "$KUBE_APISERVER",
+    "--kube-as-user", "$KUBE_USER",
+  ];
+
+  const releaseNameParameter = releaseName || "--generate-name";
+
+  const installationParameters = generateInstallationParameters({
+    namespace,
+    valuesOverrides,
+  });
+
+  const dockerEnvironmentalVariables = volumeDefinitions.reduce(
+    (acc, cur) => ({
+      ...acc,
+      [cur.mountPoint.name]: cur.mountPoint.value,
+    }),
+    {},
+  );
+
+  const shellEnvironmentalVariables = volumeDefinitions.reduce(
+    (acc, cur) => ({
+      ...acc,
+      [cur.path.name]: cur.path.value,
+    }),
+    {
+      KUBE_CA_FILE: `${certificateVolumeDefinition.mountPoint.value}/${certificateFileName}`,
+      KUBE_TOKEN: kubeToken,
+      KUBE_APISERVER: kubeApiServer,
+      KUBE_USER: kubeUser,
+      ...dockerEnvironmentalVariables,
+    },
+  );
+
+  const helmCommand = `\
+upgrade --install \
+${releaseNameParameter} \
+${chart} \
+${installationParameters.join(" ")} \
+${authenticationParameters.join(" ")}`;
+
+  const command = docker.buildDockerCommand({
+    command: helmCommand,
+    image: HELM_IMAGE_NAME,
+    environmentVariables: dockerEnvironmentalVariables,
+    volumeDefinitionsArray: volumeDefinitions,
+    additionalArguments,
   });
 
   logToActivityLog(`Executing ${command}`);
@@ -173,10 +292,15 @@ async function runCommand(parameters) {
     kubeToken,
     kubeApiServer,
     kubeUser,
-    namespace,
+    workingDirectory,
   } = parameters;
 
   let { command } = parameters;
+
+  const additionalArguments = [
+    "-v",
+    `${LOCAL_HELM_HOME_PATH}:/root/`,
+  ];
 
   const [certificatePath, certificateFileName] = splitDirectory(certificateFilePath);
   const certificateVolumeDefinition = docker.createVolumeDefinition(certificatePath);
@@ -185,12 +309,24 @@ async function runCommand(parameters) {
   ];
 
   // if a command uses a local chart, then we mount it to the docker
-  const chartDirectory = extractChartDirectoryFromCommand(command);
-  if (chartDirectory) {
+  const chartPath = extractChartPathFromCommand(command);
+  if (workingDirectory) {
+    const absoluteWorkingDirectory = path.resolve(workingDirectory);
+
+    const workingDirectoryVolumeDefinition = docker.createVolumeDefinition(
+      absoluteWorkingDirectory,
+    );
+    volumeDefinitions.push(workingDirectoryVolumeDefinition);
+
+    additionalArguments.push("-w", `$${workingDirectoryVolumeDefinition.mountPoint.name}`);
+  } else if (chartPath) {
+    const absoluteChartPath = path.resolve(chartPath);
+
+    const [chartDirectory, chartName] = splitDirectory(absoluteChartPath);
     const chartVolumeDefinition = docker.createVolumeDefinition(chartDirectory);
     volumeDefinitions.push(chartVolumeDefinition);
 
-    command = command.replace(chartDirectory, `$${chartVolumeDefinition.mountPoint.name}`);
+    command = command.replace(chartPath, `$${chartVolumeDefinition.mountPoint.name}/${chartName}`);
   }
 
   const authenticationParametersMap = new Map([
@@ -200,15 +336,9 @@ async function runCommand(parameters) {
     ["--kube-as-user", kubeUser],
   ]);
 
-  const additionalParametersMap = new Map();
-  if (namespace) {
-    additionalParametersMap.set("--namespace", namespace);
-  }
-
   const sanitizedParametersMap = sanitizeParameters(
     command,
     authenticationParametersMap,
-    additionalParametersMap,
   );
   // eslint-disable-next-line max-len
   const parametersWithEnvironmentalVariablesArray = paramsMapToParamsWithEnvironmentalVariablesArray(
@@ -246,10 +376,7 @@ ${parametersWithEnvironmentalVariablesArray.join(" ")}`;
     image: HELM_IMAGE_NAME,
     environmentVariables: dockerEnvironmentalVariables,
     volumeDefinitionsArray: volumeDefinitions,
-    additionalArguments: [
-      "-v",
-      `${LOCAL_HELM_HOME_PATH}:/root/`,
-    ],
+    additionalArguments,
   });
 
   logToActivityLog(`Executing ${completeCommand}`);
@@ -262,16 +389,6 @@ ${parametersWithEnvironmentalVariablesArray.join(" ")}`;
     stderr: result.stderr,
     stdout: redactTokenValue(result.stdout),
   };
-}
-
-function addExtraPathToVolumeDefinition(volumeDefinition, workingDirectory) {
-  const workingDirectoryName = path.basename(workingDirectory);
-
-  /* eslint-disable no-param-reassign,no-unused-expressions */
-  volumeDefinition.mountPoint.value.endsWith("/")
-    ? volumeDefinition.mountPoint.value += workingDirectoryName
-    : volumeDefinition.mountPoint.value += `/${workingDirectoryName}`;
-  /* eslint-enable no-param-reassign,no-unused-expressions */
 }
 
 function generateInstallationParameters(pluginParams) {
@@ -300,26 +417,20 @@ function splitDirectory(directory) {
   ];
 }
 
-function extractChartDirectoryFromCommand(command) {
-  const directory = helpers.extractPathsFromCommand(command);
+function extractChartPathFromCommand(command) {
+  const paths = helpers.extractPathsFromCommand(command);
 
-  if (directory.length < 1 || !directory[0].path) {
+  if (paths.length < 1 || !paths[0].path) {
     return null;
   }
 
-  return directory[0].path;
+  return paths[0].path;
 }
 
-function sanitizeParameters(command, authorizationParamsMap, additionalParamsMap) {
+function sanitizeParameters(command, authenticationParamsMap) {
   const sanitizedParameters = new Map();
 
-  authorizationParamsMap.forEach((value, key) => {
-    if (!command.includes(key)) {
-      sanitizedParameters.set(key, value);
-    }
-  });
-
-  additionalParamsMap.forEach((value, key) => {
+  authenticationParamsMap.forEach((value, key) => {
     if (!command.includes(key)) {
       sanitizedParameters.set(key, value);
     }
@@ -383,6 +494,7 @@ function logToActivityLog(message) {
 
 module.exports = {
   install,
+  upgrade,
   uninstall,
   runCommand,
 };
