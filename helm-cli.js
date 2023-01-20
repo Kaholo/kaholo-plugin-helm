@@ -310,7 +310,7 @@ async function listReleases(parameters) {
   ];
 
   const listParameters = generateHelmCmdParameters({
-    namespace: namespace ? namespace : "a887fe9a91defba9ef32cc0ff0a75503",
+    namespace: namespace || "a887fe9a91defba9ef32cc0ff0a75503",
     jsonOutput,
   });
 
