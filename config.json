@@ -169,6 +169,28 @@
       ]
     },
     {
+      "name": "listReleases",
+      "viewName": "List Releases",
+      "params": [
+        {
+          "name": "namespace",
+          "viewName": "Namespace",
+          "type": "string",
+          "required": false,
+          "description": "The namespace for which relases will be listed. If empty will list for ALL namespaces.",
+          "placeholder": "default",
+          "learnUrl": "https://helm.sh/docs/glossary/#release"
+        },
+        {
+          "name": "jsonOutput",
+          "viewName": "List in JSON format",
+          "type": "boolean",
+          "default": true,
+          "description": "Provides JSON output in Final Results instead of tabular text format"
+        }
+      ]
+    },
+    {
       "name": "runCommand",
       "viewName": "Run Helm Command",
       "params": [
