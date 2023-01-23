@@ -1,5 +1,5 @@
 # Kaholo Helm Plugin
-This plugin extends Kaholo's functionality by providing access to [Helm](https://helm.sh/). Helm helps you manage Kubernetes applications — Helm Charts help you define, install, and upgrade even the most complex Kubernetes application. 
+This plugin extends Kaholo's functionality by providing access to the [Helm CLI](htps://helm.sh/). Helm Charts help you define, install, and upgrade even the most complex Kubernetes application. 
 
 ## Prerequisites
 To use Helm, you will require a [Kubernetes](https://kubernetes.io/) cluster. A Kubernetes cluster is a physical or virtual machine running a Kubernetes Control Plane and at least one Kubernetes Node. Within Kubernetes Nodes, one can run pods, which are containers not unlike [Docker containers](https://www.docker.com/resources/what-container/). Running containerized applications has become wildly popular because it provides a highly standard, secure, scalable, and lightweight architecture with features such as auto-scaling and rolling upgrades.
