@@ -65,7 +65,7 @@ async function install(parameters) {
 
   const releaseNameParameter = releaseName || "--generate-name";
 
-  const installationParameters = generateInstallationParameters({
+  const installationParameters = generateHelmCmdParameters({
     namespace,
     valuesOverrides,
   });
@@ -168,7 +168,7 @@ async function upgrade(parameters) {
 
   const releaseNameParameter = releaseName || "--generate-name";
 
-  const installationParameters = generateInstallationParameters({
+  const upgradeParameters = generateHelmCmdParameters({
     namespace,
     valuesOverrides,
   });
@@ -199,7 +199,7 @@ async function upgrade(parameters) {
 upgrade --install \
 ${releaseNameParameter} \
 ${chart} \
-${installationParameters.join(" ")} \
+${upgradeParameters.join(" ")} \
 ${authenticationParameters.join(" ")}`;
 
   const command = docker.buildDockerCommand({
@@ -240,7 +240,7 @@ async function uninstall(parameters) {
     "--kube-as-user", "$KUBE_USER",
   ];
 
-  const installationParameters = generateInstallationParameters({
+  const uninstallParameters = generateHelmCmdParameters({
     namespace,
   });
 
@@ -269,7 +269,76 @@ async function uninstall(parameters) {
   const helmCommand = `\
 uninstall \
 ${releaseName} \
-${installationParameters.join(" ")} \
+${uninstallParameters.join(" ")} \
+${authenticationParameters.join(" ")}`;
+
+  const command = docker.buildDockerCommand({
+    command: helmCommand,
+    image: HELM_IMAGE_NAME,
+    environmentVariables: dockerEnvironmentalVariables,
+    volumeDefinitionsArray: volumeDefinitions,
+  });
+
+  logToActivityLog(`Executing ${command}`);
+
+  return exec(command, {
+    env: shellEnvironmentalVariables,
+  });
+}
+
+async function listReleases(parameters) {
+  const {
+    certificateFilePath,
+    kubeToken,
+    kubeApiServer,
+    kubeUser,
+    namespace,
+    jsonOutput,
+  } = parameters;
+
+  const [certificatePath, certificateFileName] = splitDirectory(certificateFilePath);
+  const certificateVolumeDefinition = docker.createVolumeDefinition(certificatePath);
+  const volumeDefinitions = [
+    certificateVolumeDefinition,
+  ];
+
+  const authenticationParameters = [
+    "--kube-ca-file", "$KUBE_CA_FILE",
+    "--kube-token", "$KUBE_TOKEN",
+    "--kube-apiserver", "$KUBE_APISERVER",
+    "--kube-as-user", "$KUBE_USER",
+  ];
+
+  const listParameters = generateHelmCmdParameters({
+    namespace: namespace || "a887fe9a91defba9ef32cc0ff0a75503",
+    jsonOutput,
+  });
+
+  const dockerEnvironmentalVariables = volumeDefinitions.reduce(
+    (acc, cur) => ({
+      ...acc,
+      [cur.mountPoint.name]: cur.mountPoint.value,
+    }),
+    {},
+  );
+
+  const shellEnvironmentalVariables = volumeDefinitions.reduce(
+    (acc, cur) => ({
+      ...acc,
+      [cur.path.name]: cur.path.value,
+    }),
+    {
+      KUBE_CA_FILE: `${certificateVolumeDefinition.mountPoint.value}/${certificateFileName}`,
+      KUBE_TOKEN: kubeToken,
+      KUBE_APISERVER: kubeApiServer,
+      KUBE_USER: kubeUser,
+      ...dockerEnvironmentalVariables,
+    },
+  );
+
+  const helmCommand = `\
+list \
+${listParameters.join(" ")} \
 ${authenticationParameters.join(" ")}`;
 
   const command = docker.buildDockerCommand({
@@ -391,20 +460,29 @@ ${parametersWithEnvironmentalVariablesArray.join(" ")}`;
   };
 }
 
-function generateInstallationParameters(pluginParams) {
+function generateHelmCmdParameters(pluginParams) {
   const {
     namespace,
     valuesOverrides,
+    jsonOutput,
   } = pluginParams;
 
   const params = [];
 
   if (namespace) {
-    params.push("--namespace", namespace);
+    if (namespace === "a887fe9a91defba9ef32cc0ff0a75503") {
+      params.push("--all-namespaces");
+    } else {
+      params.push("--namespace", namespace);
+    }
   }
 
   if (valuesOverrides) {
     params.push(...valuesOverrides.map((override) => ["--set", override]).flat());
+  }
+
+  if (jsonOutput) {
+    params.push("--output json");
   }
 
   return params;
@@ -496,5 +574,6 @@ module.exports = {
   install,
   upgrade,
   uninstall,
+  listReleases,
   runCommand,
 };

@@ -1,11 +1,12 @@
 {
   "name": "Helm",
+  "viewName": "Helm",
   "type": "executer",
   "imgUrl": "icon.png",
   "execProgram": "node",
   "main": "app.js",
   "version": "3.0.0",
-  "description": "Helm is a Package Manager for Kubernetes",
+  "description": "Helm is a package manager to deploy applications onto a Kubernetes cluster",
   "category": "Containers",
   "keywords": [
     "helm",
@@ -24,7 +25,7 @@
   "settings": [
     {
       "name": "namespace",
-      "viewName": "Namespace",
+      "viewName": "Namespace to use by default",
       "type": "string",
       "placeholder": "default"
     },
@@ -40,7 +41,7 @@
       {
         "name": "kubeCertificate",
         "viewName": "Cluster CA Certificate",
-        "description": "Either PEM or Base64 encoded is acceptable",
+        "description": "Either PEM or Base64 encoded certificate",
         "type": "string",
         "required": true
       },
@@ -70,15 +71,15 @@
           "viewName": "Chart",
           "type": "string",
           "required": true,
-          "description": "A directory on the Kaholo agent that contains a Helm chart (Chart.yaml) OR repo/chartname",
-          "placeholder": "/home/helm/helmchartsrepo/myapp or bitnami/drupal",
+          "description": "A directory name within the specified working directory, or a path to the chart directory or packaged chart starting with \"/\" or \"./\", or otherwise a reference, URL, or OCI URI of a Helm chart in a repository",
+          "placeholder": "./chartsrepo/mychart or bitnami/drupal",
           "learnUrl": "https://helm.sh/docs/topics/charts"
         },
         {
           "name": "releaseName",
           "viewName": "Release name",
           "type": "string",
-          "description": "If not provided a random name will be generated.",
+          "description": "A cluster-wide unique name for the release, or if not provided an arbitrary numbered name will be generated.",
           "placeholder": "wunderapp3-qa-rc02",
           "learnUrl": "https://helm.sh/docs/glossary/#release"
         },
@@ -95,11 +96,13 @@
           "name": "namespace",
           "viewName": "Namespace",
           "type": "string",
+          "description": "The Kuberentes namespace in which to deploy or default if left empty.",
           "placeholder": "default"
         },
         {
           "name": "workingDirectory",
-          "viewName": "Default Working Directory",
+          "viewName": "Working Directory",
+          "description": "Optional path to working directory on Kaholo Agent so short name can be used for parameter Chart",
           "type": "string"
         }
       ]
@@ -113,15 +116,15 @@
           "viewName": "Chart",
           "type": "string",
           "required": true,
-          "description": "A directory on the Kaholo agent that contains a Helm chart (Chart.yaml) OR repo/chartname",
-          "placeholder": "/home/helm/helmchartsrepo/myapp or bitnami/drupal",
+          "description": "A directory name within the specified working directory, or a path to the chart directory or packaged chart starting with \"/\" or \"./\", or otherwise a reference, URL, or OCI URI of a Helm chart in a repository",
+          "placeholder": "./chartsrepo/mychart or bitnami/drupal",
           "learnUrl": "https://helm.sh/docs/topics/charts"
         },
         {
           "name": "releaseName",
           "viewName": "Release name",
           "type": "string",
-          "description": "If not provided a random name will be generated.",
+          "description": "The name of the existing release to upgrade.",
           "placeholder": "wunderapp3-qa-rc02",
           "learnUrl": "https://helm.sh/docs/glossary/#release"
         },
@@ -138,11 +141,13 @@
           "name": "namespace",
           "viewName": "Namespace",
           "type": "string",
+          "description": "The Kubernetes namespace in which the release is currently deployed, or default if left empty",
           "placeholder": "default"
         },
         {
           "name": "workingDirectory",
-          "viewName": "Default Working Directory",
+          "viewName": "Working Directory",
+          "description": "Optional path to working directory on Kaholo Agent so short name can be used for parameter Chart",
           "type": "string"
         }
       ]
@@ -164,7 +169,30 @@
           "name": "namespace",
           "viewName": "Namespace",
           "type": "string",
+          "description": "The Kubernetes namespace in which the release is currently deployed, or default if left empty",
           "placeholder": "default"
+        }
+      ]
+    },
+    {
+      "name": "listReleases",
+      "viewName": "List Releases",
+      "params": [
+        {
+          "name": "namespace",
+          "viewName": "Namespace",
+          "type": "string",
+          "required": false,
+          "description": "The Kubernetes namespace for which relases will be listed. If empty will list for ALL namespaces.",
+          "placeholder": "default",
+          "learnUrl": "https://helm.sh/docs/glossary/#release"
+        },
+        {
+          "name": "jsonOutput",
+          "viewName": "List in JSON format",
+          "type": "boolean",
+          "default": true,
+          "description": "Provides JSON output in Final Results instead of tabular text format"
         }
       ]
     },
@@ -176,13 +204,14 @@
           "name": "command",
           "viewName": "Command",
           "type": "string",
-          "description": "Run any command beginning with \"helm\"",
+          "description": "Any command beginning with \"helm\"",
           "placeholder": "helm repo add bitnami https://charts.bitnami.com/bitnami",
           "learnUrl": "https://helm.sh/docs/helm/helm/"
         },
         {
           "name": "workingDirectory",
-          "viewName": "Default Working Directory",
+          "viewName": "Working Directory",
+          "description": "Optional path on Kaholo Agent to cwd before running command",
           "type": "string"
         }
       ]
